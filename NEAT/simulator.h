@@ -1,0 +1,16 @@
+#pragma once
+#include <vector>
+
+
+namespace NEAT {
+	// The class that provides the interface that users of the library must use for simulation.
+	// Could morph into any system wishing to be given the desired behaviour through NEAT (eg flappy bird, inverted pendulem etc.).
+	// Users of the library must inherit from this class in order to get the library to interface with their code.
+	class Simulator {
+	public:
+		virtual void update(const std::vector<double>& inputs) = 0;
+		virtual const std::vector<double>& get_state() = 0;
+		virtual double get_fitness() = 0;
+		virtual void reset() = 0;
+	};
+}
