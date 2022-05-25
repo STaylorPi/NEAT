@@ -6,7 +6,7 @@ namespace NEAT {
 	double modified_sigmoid(double input) { return 1 / (1 + exp(-4.9 * input)); }
 	double act_func(double input) { return modified_sigmoid(input); }
 	double random(double thresh) { return (System::rand_dist(System::rand_gen) - 0.5) * 2 * thresh; }
-	uint32_t random_int(uint32_t ulim) { return System::rand_dist(System::rand_gen) * ulim; }
+	uint32_t random_int(uint32_t ulim) { return uint32_t(System::rand_dist(System::rand_gen) * ulim); }
 
 	System::System(uint32_t size, uint32_t inputs, uint32_t outputs)
 		:inputs{ inputs }, outputs{ outputs }, size{ size }

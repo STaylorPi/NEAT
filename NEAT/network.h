@@ -30,10 +30,16 @@ namespace NEAT {
 		bool speciate(double c1, double c2, double c3, const std::vector<Connection>& rhs, double thresh);
 
 		// the fitness before the adjustments according to explicit fitness sharing
-		double raw_fitness() const { return fitness; }
+		double get_raw_fitness() const { return fitness; }
+
+		// adjust fitness does fitness sharing and divides the raw fitness by the number of individuals
+		// in a species.
+		void adjust_fitness(const System& sys);
+		double get_shared_fitness() const { return shared_fitness; }
 
 		// does what it says on the tin
 		const std::vector<Connection>& get_genome() const { return genome; }
+		uint32_t get_species() const { return species; }
 
 		// calculates by propagating the activations through the network using act_func at each node
 		const std::vector<double>& calculate(const std::vector<double>& inputs);
@@ -44,7 +50,9 @@ namespace NEAT {
 		// performs crossover with rhs.
 		// matching genes are inherited randomly
 		// disjoint and excess genes are inherited from the fitter parent
-		Network cross(const Network& rhs);
+		// disable_thresh: the probability that an offspring gene will be disabled
+		// if it is disabled in either parent
+		Network cross(const Network& rhs, double disable_thresh);
 		static Network derive_from_genome(const std::vector<Connection>& genome, uint32_t, uint32_t);
 
 		// parameters are probabilities of their respective types of mutations occuring
@@ -103,12 +111,13 @@ namespace NEAT {
 
 	private:
 		Network(uint32_t max_node, uint32_t inputs, uint32_t outputs)
-			:fitness{ 0.0 }, species{ 0 }, max_layer{ 0 }, inputs{ inputs }, outputs{ outputs }, node_num{ max_node } {}
+			:fitness{ 0.0 }, shared_fitness{ 0.0 }, species{ 0 }, max_layer{ 0 }, inputs{ inputs }, outputs{ outputs }, node_num{ max_node } {}
 
 		std::vector<Connection> genome;
 		std::vector<Node> nodes;
 
 		double fitness;
+		double shared_fitness;
 		uint32_t species;
 		uint32_t inputs, outputs;
 		uint32_t node_num; // one more than the maximum node number in the network

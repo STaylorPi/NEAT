@@ -2,7 +2,7 @@
 
 namespace NEAT {
 	Network::Network(System& sys, uint32_t inputs, uint32_t outputs)
-		:inputs{ inputs }, outputs{ outputs }, fitness{}, species{}, nodes{}, output_data(outputs), max_layer{ 0 }
+		:inputs{ inputs }, outputs{ outputs }, fitness{}, species{}, nodes{}, output_data(outputs), max_layer{ 0 }, shared_fitness{ 0 }
 	{
 		for (uint32_t inn = 0; inn < inputs; ++inn) {
 			for (uint32_t outn = 0; outn < outputs; ++outn) {
@@ -28,7 +28,7 @@ namespace NEAT {
 	}
 
 	Network::Network(System& sys, uint32_t inputs, uint32_t outputs, double random_thresh)
-		:inputs{ inputs }, outputs{ outputs }, fitness{}, species{}, nodes{}, output_data(outputs), max_layer{ 0 }
+		:inputs{ inputs }, outputs{ outputs }, fitness{}, species{}, nodes{}, output_data(outputs), max_layer{ 0 }, shared_fitness{ 0 }
 	{
 		for (uint32_t inn = 0; inn < inputs; ++inn) {
 			for (uint32_t outn = 0; outn < outputs; ++outn) {
@@ -88,6 +88,16 @@ namespace NEAT {
 		double delta = c1 * (disjoint / double(max_size)) + c2 * (excess / double(max_size)) + c3 * (weight_diff_sum / match);
 
 		return (delta <= thresh);
+	}
+
+	void Network::adjust_fitness(const System& sys)
+	{
+		uint32_t count = 0;
+		for (const Network& n : sys.get_population()) {
+			if (n.get_species() == species) count++;
+		}
+
+		shared_fitness = fitness / count;
 	}
 
 	const std::vector<double>& Network::calculate(const std::vector<double>& input_data)
@@ -214,6 +224,44 @@ namespace NEAT {
 			}
 			else c.weight = random(err);
 		}
+	}
+
+	Network Network::cross(const Network& rhs, double disable_thresh)
+	{
+		const std::vector<Connection>& genome_rhs = rhs.get_genome();
+		uint32_t max_innov = std::max(std::max_element(genome_rhs.begin(), genome_rhs.end())->innov_num,
+			std::max_element(genome.begin(), genome.end())->innov_num);
+
+		const bool rhs_fitter = rhs.get_shared_fitness() > shared_fitness;
+
+		std::vector<Connection> new_genome;
+		for (uint32_t i = 0; i <= max_innov; ++i) {
+			// if the gene is disabled in either parent, this is whether we should enable it again
+			const bool enabled = System::rand_dist(System::rand_gen) < (1 - disable_thresh);
+
+			std::vector<Connection>::const_iterator conn_this = std::find_if(genome.begin(), genome.end(), [&](const Connection& c) { return c.innov_num == i; });
+			std::vector<Connection>::const_iterator conn_rhs = std::find_if(genome_rhs.begin(), genome_rhs.end(), [&](const Connection& c) { return c.innov_num == i; });
+
+			if (conn_this != genome.end() && conn_rhs != genome_rhs.end()) { // both genes are present: choose a random one for the genome
+				if (System::rand_dist(System::rand_gen) < 0.5) new_genome.push_back(*conn_this);
+				else new_genome.push_back(*conn_rhs);
+
+				if (!(conn_this->enabled) || !(conn_rhs->enabled)) { // the gene is disabled in one of the parents
+					new_genome[new_genome.size() - 1].enabled = enabled;
+				}
+			}
+			// disjoint / excess genes are only inherited from the fitter parent
+			else if (conn_this != genome.end() && !rhs_fitter) {
+				new_genome.push_back(*conn_this);
+				new_genome[new_genome.size() - 1].enabled = enabled;
+			}
+			else if (conn_rhs != genome_rhs.end() && rhs_fitter) {
+				new_genome.push_back(*conn_rhs);
+				new_genome[new_genome.size() - 1].enabled = enabled;
+			}
+		}
+
+		return derive_from_genome(new_genome, inputs, outputs);
 	}
 
 	Network Network::derive_from_genome(const std::vector<Connection>& genome, uint32_t inputs, uint32_t outputs)
