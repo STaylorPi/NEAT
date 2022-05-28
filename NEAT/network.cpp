@@ -52,7 +52,7 @@ namespace NEAT {
 		node_num = inputs + outputs;
 	}
 
-	bool Network::speciate(double c1, double c2, double c3, const std::vector<Connection>& rhs, double thresh)
+	bool Network::speciate(double c1, double c2, double c3, const std::vector<Connection>& rhs, double thresh) const
 	{
 		uint32_t max_innov_this = std::max_element(genome.begin(), genome.end()) -> innov_num;
 		uint32_t max_innov_rhs = std::max_element(rhs.begin(), rhs.end()) -> innov_num;
@@ -84,7 +84,6 @@ namespace NEAT {
 		}
 
 		uint32_t max_size = std::max(genome.size(), rhs.size());
-		std::cout << weight_diff_sum / match << '\n';
 		double delta = c1 * (disjoint / double(max_size)) + c2 * (excess / double(max_size)) + c3 * (weight_diff_sum / match);
 
 		return (delta <= thresh);
@@ -92,25 +91,25 @@ namespace NEAT {
 
 	void Network::adjust_fitness(const System& sys)
 	{
-		uint32_t count = 0;
-		for (const Network& n : sys.get_population()) {
-			if (n.get_species() == species) count++;
-		}
-
-		shared_fitness = fitness / count;
+		shared_fitness = fitness / sys.get_species_dist()[species];
 	}
 
 	const std::vector<double>& Network::calculate(const std::vector<double>& input_data)
 	{
 		// sanity check
-		if (input_data.size() != inputs) throw std::runtime_error("Incorrect input array size to NEAT::Network::calculate");
+		if (input_data.size() != inputs-1) throw std::runtime_error("Incorrect input array size to NEAT::Network::calculate");
 
 		uint32_t working_layer = 0;
 
 		// initialise the neurons in layer zero (input layer)
 		// NB: caller is responsible for bias input
 		for (Node& n : nodes) {
-			if (n.get_layer() == 0) n.set_value(input_data[n.get_node()]);
+			if (n.get_layer() == 0) {
+				if (n.get_node() != inputs - 1)
+					n.set_value(input_data[n.get_node()]);
+
+				else n.set_value(1); // add the bias on at the end
+			}
 		}
 
 		// propagate forwards through the layers
@@ -149,8 +148,8 @@ namespace NEAT {
 	void Network::simulate(std::shared_ptr<Simulator> sim, uint32_t steps)
 	{
 		for (uint32_t i = 0; i < steps; ++i) {
-			calculate(sim->get_state());
-			sim->update(output_data);
+			calculate(sim->get_inputs_to_network());
+			sim->update_with_network_output(output_data);
 		}
 		fitness = sim->get_fitness();
 	}
@@ -228,6 +227,7 @@ namespace NEAT {
 
 	Network Network::cross(const Network& rhs, double disable_thresh)
 	{
+		//__debugbreak();
 		const std::vector<Connection>& genome_rhs = rhs.get_genome();
 		uint32_t max_innov = std::max(std::max_element(genome_rhs.begin(), genome_rhs.end())->innov_num,
 			std::max_element(genome.begin(), genome.end())->innov_num);
