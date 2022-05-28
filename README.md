@@ -14,4 +14,4 @@ The project is still a work in progress, but once finished it will have the foll
  4. NEAT::System user interface for learning []
  5. system-wide speciation algorithm (NEAT::Network::speciate already implemented) [done, somewhat tested]
  6. Explicit fitness sharing [partially done, not tested]
- 7. Assigning and generating offspring from a generation (best members of species are passed straight through) []
+ 7. Assigning and generating offspring from a generation (best members of species are passed straight through) [assigning done, tested]
