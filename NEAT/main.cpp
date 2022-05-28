@@ -1,17 +1,15 @@
+#include "system.h"
 #include "network.h"
-
-void not_safe() { int* a = new int; }
+#include "xor_test.h"
 
 int main()
 {
 	try {
-		NEAT::System sys{ 1, 5, 2 };
-		sys.init();
-		for (int i=0; i<400; ++i)
-			sys.get_population()[0].mutate(sys, 0.03, 0.05, 0.8, 0.9, 0.5);
+		NEAT::System sys{ 100, 3, 1, 10 };
+		XOR test;
 
-		NEAT::Network test = NEAT::Network::derive_from_genome(sys.get_population()[0].get_genome(), 5, 2);
-		//__debugbreak();
+		NEAT::initialise_system<XOR>(sys, test);
+		__debugbreak();
 
 		return 0;
 	}

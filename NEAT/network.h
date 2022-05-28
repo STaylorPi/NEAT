@@ -27,7 +27,8 @@ namespace NEAT {
 		// c2: coeficcient for excess genes
 		// c3: coeficcient for weights
 		// thresh is the speciation threshold - delta_t in the 2002 paper
-		bool speciate(double c1, double c2, double c3, const std::vector<Connection>& rhs, double thresh);
+		bool speciate(double c1, double c2, double c3, const std::vector<Connection>& rhs, double thresh) const;
+		void set_species(uint32_t new_species) { species = new_species; }
 
 		// the fitness before the adjustments according to explicit fitness sharing
 		double get_raw_fitness() const { return fitness; }
