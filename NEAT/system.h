@@ -2,7 +2,8 @@
 #include <cmath>
 #include <memory>
 #include <random>
-#include <map>
+#include <algorithm>
+#include <numeric>
 
 #include "network.h"
 #include "connection.h"
@@ -12,7 +13,7 @@ namespace NEAT {
 	double modified_sigmoid(double input);
 	double act_func(double input);
 	double random(double thresh);
-	uint32_t random_int(uint32_t ulim);
+	uint32_t random_int(uint32_t ulim); // inclusive
 
 	// checks if v2 is a subset of v1
 	template <typename T>
@@ -43,8 +44,11 @@ namespace NEAT {
 		void simulate_population(uint32_t timesteps);
 
 		void speciate();
-		void fitness_sharing();
-		std::vector<uint32_t> assign_offspring();
+		void update_reps();
+		void fitness_sharing(); // carrry out the fitness sharing algorithm (pg. 110)
+
+		std::vector<uint32_t> assign_offspring(); // give the number of offspring to each species
+		void cull_population(); // removes the unfit genomes from the population
 
 	private:
 
@@ -65,6 +69,8 @@ namespace NEAT {
 		double spec_c1;
 		double spec_c2;
 		double spec_c3;
+
+		double keep; // the percentage of the genomes to reproduce from
 	};
 
 	template<typename Sim>
