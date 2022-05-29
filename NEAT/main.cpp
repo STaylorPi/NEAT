@@ -1,21 +1,22 @@
 #include "system.h"
 #include "network.h"
 #include "xor_test.h"
+#include "cart_beam.h"
 
 #include <fstream>
 
 int main()
 {
 	try {
-		NEAT::System sys{ 150, 3, 1, 0 };
-		XOR test;
+		NEAT::System sys{ 150, 5, 1, 0 };
+		Cart_beam_system test;
 
-		NEAT::initialise_system<XOR>(sys, test);
+		NEAT::initialise_system<Cart_beam_system>(sys, test);
 		std::ofstream outfile{ "out.dat" };
 
 		for (size_t i = 0; i < 1000; i++)
 		{
-			sys.simulate_population(4);
+			sys.simulate_population(5000);
 			sys.log(outfile);
 			sys.produce_next_generation();
 			sys.reset_simulators();
