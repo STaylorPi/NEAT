@@ -5,19 +5,18 @@
 int main()
 {
 	try {
-		NEAT::System sys{ 100, 3, 1, 1 };
+		NEAT::System sys{ 150, 3, 1, 0 };
 		XOR test;
 
 		NEAT::initialise_system<XOR>(sys, test);
-		
-		sys.simulate_population(4);
-		sys.speciate();
-		sys.fitness_sharing();
-		auto test2 = sys.assign_offspring();
-		__debugbreak();
-		sys.update_reps();
-		__debugbreak();
-		sys.cull_population();
+
+		for (size_t i = 0; i < 1000; i++)
+		{
+			sys.simulate_population(4);
+			sys.produce_next_generation();
+			sys.reset_simulators();
+			//if (i == 500) __debugbreak();
+		}
 
 		return 0;
 	}

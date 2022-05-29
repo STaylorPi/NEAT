@@ -84,7 +84,10 @@ namespace NEAT {
 				double temp_val = 0;
 				for (uint32_t n : input_nodes)
 				{
-					temp_val += std::find(genome.begin(), genome.end(), Connection{ n, node })->value;
+					auto conn = std::find(genome.begin(), genome.end(), Connection{ n, node });
+					if (conn->enabled) {
+						temp_val += conn->value;
+					}
 				}
 
 				calculate(temp_val);

@@ -2,7 +2,7 @@
 
 namespace NEAT {
 	Network::Network(System& sys, uint32_t inputs, uint32_t outputs)
-		:inputs{ inputs }, outputs{ outputs }, fitness{}, species{}, nodes{}, output_data(outputs), max_layer{ 0 }, shared_fitness{ 0 }
+		:inputs{ inputs }, outputs{ outputs }, fitness{}, species{}, nodes{}, output_data(outputs), max_layer{ 1 }, shared_fitness{ 0 }
 	{
 		for (uint32_t inn = 0; inn < inputs; ++inn) {
 			for (uint32_t outn = 0; outn < outputs; ++outn) {
@@ -28,7 +28,7 @@ namespace NEAT {
 	}
 
 	Network::Network(System& sys, uint32_t inputs, uint32_t outputs, double random_thresh)
-		:inputs{ inputs }, outputs{ outputs }, fitness{}, species{}, nodes{}, output_data(outputs), max_layer{ 0 }, shared_fitness{ 0 }
+		:inputs{ inputs }, outputs{ outputs }, fitness{}, species{}, nodes{}, output_data(outputs), max_layer{ 1 }, shared_fitness{ 0 }
 	{
 		for (uint32_t inn = 0; inn < inputs; ++inn) {
 			for (uint32_t outn = 0; outn < outputs; ++outn) {
@@ -84,6 +84,7 @@ namespace NEAT {
 		}
 
 		uint32_t max_size = std::max(genome.size(), rhs.size());
+		if (max_size < 20) max_size = 1;
 		double delta = c1 * (disjoint / double(max_size)) + c2 * (excess / double(max_size)) + c3 * (weight_diff_sum / match);
 
 		return (delta <= thresh);
@@ -104,7 +105,7 @@ namespace NEAT {
 		// initialise the neurons in layer zero (input layer)
 		// NB: caller is responsible for bias input
 		for (Node& n : nodes) {
-			if (n.get_layer() == 0) {
+			if (n.get_layer() == 0 && n.get_node() < inputs) {
 				if (n.get_node() != inputs - 1)
 					n.set_value(input_data[n.get_node()]);
 
@@ -297,9 +298,9 @@ namespace NEAT {
 
 	void Network::mutate(System& s, double node_mut, double conn_mut, double weight_mut, double mut_uniform, double err)
 	{
-		if (System::rand_dist(System::rand_gen) < node_mut) mutate_add_node(s);
-		if (System::rand_dist(System::rand_gen) < conn_mut) mutate_add_connection(s, err);
 		if (System::rand_dist(System::rand_gen) < weight_mut) mutate_weights(mut_uniform, err);
+		if (System::rand_dist(System::rand_gen) < conn_mut) mutate_add_connection(s, err);
+		if (System::rand_dist(System::rand_gen) < node_mut) mutate_add_node(s);
 	}
 
 	void Network::configure_layers()

@@ -9,8 +9,9 @@ namespace NEAT {
 	uint32_t random_int(uint32_t ulim) { return uint32_t(System::rand_dist(System::rand_gen) * ulim); }
 
 	System::System(uint32_t size, uint32_t inputs, uint32_t outputs, double err)
-		:inputs{ inputs }, outputs{ outputs }, size{ size }, spec_thresh{ .1 }, 
-		spec_c1{ 1.0 }, spec_c2{ 1.0 }, spec_c3{ .4 }, keep{ .5 }
+		:inputs{ inputs }, outputs{ outputs }, size{ size }, spec_thresh{ 3.0 }, 
+		spec_c1{ 1.0 }, spec_c2{ 1.0 }, spec_c3{ .4 }, keep{ .2 },
+		node_mut{ 0.03 }, conn_mut{ 0.05 }, weight_mut{ 0.8 }, mut_uniform{ 0.98 }, weight_err{ 0.825 }
 	{
 		for (uint32_t i = 0; i < size; ++i) {
 			population.emplace_back(Network{ *this, inputs, outputs, err });
@@ -45,7 +46,6 @@ namespace NEAT {
 				if (test_net.speciate(spec_c1, spec_c2, spec_c3, net.get_genome(), spec_thresh)) {
 					species_found = true;
 					net.set_species(test_net.get_species());
-					species_count[test_net.get_species()]++;
 					break;
 				}
 			}
@@ -54,8 +54,35 @@ namespace NEAT {
 			if (!species_found) {
 				net.set_species(species_reps.size());
 				species_reps.push_back(net);
-				species_count.push_back(1);
 			}
+		}
+
+		//if (population[population.size() - 1].get_species() > 0) __debugbreak();
+
+		species_count.clear();
+		std::sort(population.begin(), population.end(),
+			[](const Network& a, const Network& b) {
+				return a.get_species() < b.get_species(); });
+
+		// maybe some species no longer have networks in them
+		// so for instance, in the sorted population, species go 4, 4, 4, 6, 6, 7, 7 etc.
+		// we want to update the species_count vector acturately, based upon 4, 4, 4, 5, 5, 6, 6 etc. from above
+		uint32_t counter = 0; // the number of changes of species index so far
+		std::vector<uint32_t> new_species; // size of population, records the correct species of each net
+		for (uint32_t i = 0; i < population.size(); ++i) {
+			if (i != 0 && population[i].get_species() != population[i - 1].get_species()) {
+				counter++;
+			}
+			new_species.push_back(counter);
+		}
+
+		for (uint32_t i = 0; i < population.size(); ++i) {
+			population[i].set_species(new_species[i]);
+		}
+
+		// update the species_count vector
+		for (uint32_t i = 0; i <= counter; ++i) {
+			species_count.push_back(std::count_if(population.begin(), population.end(), [i](const Network& net) {return net.get_species() == i; }));
 		}
 	}
 
@@ -65,9 +92,10 @@ namespace NEAT {
 			[](const Network& a, const Network& b) {
 				return a.get_species() < b.get_species(); });
 
+		species_reps.clear();
 		uint32_t spec_index = 0;
 		for (uint32_t i = 0; i < species_count.size(); ++i) {
-			species_reps[i] = population[spec_index + random_int(species_count[i])];
+			species_reps.push_back(population[spec_index + random_int(species_count[i] - 1)]);
 			spec_index += species_count[i];
 		}
 	}
@@ -83,9 +111,12 @@ namespace NEAT {
 	{
 		std::vector<uint32_t> species_offspring;
 		double average_fitness = 0;
+		double real_fitness = 0;
 		for (Network& net : population) {
 			average_fitness += net.get_shared_fitness() / size;
+			real_fitness += net.get_raw_fitness() / size;
 		}
+		std::cout << "Average fitness: " << real_fitness << '\n';
 
 		for (uint32_t spec = 0; spec < species_count.size(); ++spec) {
 			double spec_fitness = 0;
@@ -143,10 +174,44 @@ namespace NEAT {
 		population = culled_population;
 	}
 
+	void System::produce_next_generation()
+	{
+		speciate();
+		update_reps();
+		fitness_sharing();
+		std::vector<uint32_t> species_offspring = assign_offspring();
+		cull_population();
+
+		// now in a state to produce the next generation
+		// 28.05.2022 NONMATING IMPLEMENTATION
+		std::vector<Network> new_population;
+
+		uint32_t spec_index = 0;
+		for (uint32_t spec = 0; spec < species_offspring.size(); ++spec) {
+			uint32_t spec_len = species_count[spec] - uint32_t(species_count[spec] * (1 - keep)); // before amount - amount culled
+			for (uint32_t i = 0; i < species_offspring[spec]; ++i) {
+				new_population.push_back(population[spec_index + random_int(spec_len - 1)]);
+			}
+			spec_index += spec_len;
+		}
+		
+		for (Network& net : new_population) {
+			net.mutate(*this, node_mut, conn_mut, weight_mut, mut_uniform, weight_err);
+		}
+
+		population = new_population;
+	}
+
 	void System::simulate_population(uint32_t timesteps)
 	{
 		for (uint32_t i = 0; i < size; ++i) {
 			population[i].simulate(simulators[i], timesteps);
+		}
+	}
+	void System::reset_simulators()
+	{
+		for (auto& sim : simulators) {
+			sim->reset();
 		}
 	}
 }

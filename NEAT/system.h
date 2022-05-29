@@ -42,6 +42,7 @@ namespace NEAT {
 		const std::vector<uint32_t>& get_species_dist() const { return species_count; }
 
 		void simulate_population(uint32_t timesteps);
+		void reset_simulators();
 
 		void speciate();
 		void update_reps();
@@ -49,6 +50,8 @@ namespace NEAT {
 
 		std::vector<uint32_t> assign_offspring(); // give the number of offspring to each species
 		void cull_population(); // removes the unfit genomes from the population
+
+		void produce_next_generation();
 
 	private:
 
@@ -71,6 +74,14 @@ namespace NEAT {
 		double spec_c3;
 
 		double keep; // the percentage of the genomes to reproduce from
+
+		// mutation probabilities
+		double node_mut;
+		double conn_mut;
+		double weight_mut;
+		double mut_uniform;
+
+		double weight_err; // the error to mutate (+-weight_err)
 	};
 
 	template<typename Sim>
