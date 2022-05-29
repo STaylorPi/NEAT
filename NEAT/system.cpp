@@ -11,7 +11,8 @@ namespace NEAT {
 	System::System(uint32_t size, uint32_t inputs, uint32_t outputs, double err)
 		:inputs{ inputs }, outputs{ outputs }, size{ size }, spec_thresh{ 3.0 }, 
 		spec_c1{ 1.0 }, spec_c2{ 1.0 }, spec_c3{ .4 }, keep{ .2 },
-		node_mut{ 0.03 }, conn_mut{ 0.05 }, weight_mut{ 0.8 }, mut_uniform{ 0.98 }, weight_err{ 0.825 }
+		node_mut{ 0.03 }, conn_mut{ 0.05 }, weight_mut{ 0.8 }, mut_uniform{ 0.98 }, weight_err{ 0.825 },
+		generation{ 0 }
 	{
 		for (uint32_t i = 0; i < size; ++i) {
 			population.emplace_back(Network{ *this, inputs, outputs, err });
@@ -111,12 +112,9 @@ namespace NEAT {
 	{
 		std::vector<uint32_t> species_offspring;
 		double average_fitness = 0;
-		double real_fitness = 0;
 		for (Network& net : population) {
 			average_fitness += net.get_shared_fitness() / size;
-			real_fitness += net.get_raw_fitness() / size;
 		}
-		std::cout << "Average fitness: " << real_fitness << '\n';
 
 		for (uint32_t spec = 0; spec < species_count.size(); ++spec) {
 			double spec_fitness = 0;
@@ -200,6 +198,32 @@ namespace NEAT {
 		}
 
 		population = new_population;
+		generation++;
+	}
+
+	std::ostream& System::log(std::ostream& os)
+	{
+		double mean_fitness = 0;
+		double mean_hidden_nodes = 0;
+		for (const Network& net : population) {
+			mean_fitness += net.get_raw_fitness() / size;
+			mean_hidden_nodes += double(net.get_hidden_nodes()) / size;
+		}
+
+		double max_fitness = std::max_element(population.begin(), population.end(), [](const Network& a, const Network& b)
+			{return a.get_raw_fitness() < b.get_raw_fitness(); })->get_raw_fitness();
+
+		os << "====GENERATION " << generation << "====\n";
+		os << "Mean fitness:      " << mean_fitness << '\n';
+		os << "Mean hidden nodes: " << mean_hidden_nodes << '\n';
+		os << "Species:           " << species_count.size() << '\n';
+		os << "Max fitness:       " << max_fitness << "\n\n";
+
+		if (&os != &std::cout) {
+			std::cout << generation << '\r';
+		}
+
+		return os;
 	}
 
 	void System::simulate_population(uint32_t timesteps)

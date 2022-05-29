@@ -2,6 +2,8 @@
 #include "network.h"
 #include "xor_test.h"
 
+#include <fstream>
+
 int main()
 {
 	try {
@@ -9,13 +11,14 @@ int main()
 		XOR test;
 
 		NEAT::initialise_system<XOR>(sys, test);
+		std::ofstream outfile{ "out.dat" };
 
-		for (size_t i = 0; i < 1000; i++)
+		for (size_t i = 0; i < 300; i++)
 		{
 			sys.simulate_population(4);
 			sys.produce_next_generation();
 			sys.reset_simulators();
-			//if (i == 500) __debugbreak();
+			sys.log(outfile);
 		}
 
 		return 0;

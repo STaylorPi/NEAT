@@ -42,6 +42,8 @@ namespace NEAT {
 		const std::vector<Connection>& get_genome() const { return genome; }
 		uint32_t get_species() const { return species; }
 
+		uint32_t get_hidden_nodes() const { return nodes.size() - inputs - outputs; }
+
 		// calculates by propagating the activations through the network using act_func at each node
 		const std::vector<double>& calculate(const std::vector<double>& inputs);
 

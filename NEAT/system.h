@@ -44,14 +44,9 @@ namespace NEAT {
 		void simulate_population(uint32_t timesteps);
 		void reset_simulators();
 
-		void speciate();
-		void update_reps();
-		void fitness_sharing(); // carrry out the fitness sharing algorithm (pg. 110)
-
-		std::vector<uint32_t> assign_offspring(); // give the number of offspring to each species
-		void cull_population(); // removes the unfit genomes from the population
-
 		void produce_next_generation();
+
+		std::ostream& log(std::ostream&);
 
 	private:
 
@@ -65,6 +60,8 @@ namespace NEAT {
 
 		uint32_t inputs, outputs; // number of input nodes and output nodes including bias
 		uint32_t size; // the overall population === population.size()
+
+		uint32_t generation;
 
 		// system initial conditions
 		double spec_thresh; // delta_t
@@ -82,6 +79,13 @@ namespace NEAT {
 		double mut_uniform;
 
 		double weight_err; // the error to mutate (+-weight_err)
+
+		void speciate();
+		void update_reps();
+		void fitness_sharing(); // carrry out the fitness sharing algorithm (pg. 110)
+
+		std::vector<uint32_t> assign_offspring(); // give the number of offspring to each species
+		void cull_population(); // removes the unfit genomes from the population
 	};
 
 	template<typename Sim>
