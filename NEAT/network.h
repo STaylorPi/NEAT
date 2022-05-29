@@ -117,7 +117,8 @@ namespace NEAT {
 
 	private:
 		Network(uint32_t max_node, uint32_t inputs, uint32_t outputs)
-			:fitness{ 0.0 }, shared_fitness{ 0.0 }, species{ 0 }, max_layer{ 0 }, inputs{ inputs }, outputs{ outputs }, node_num{ max_node } {}
+			:fitness{}, shared_fitness{}, species{}, max_layer{ 1 }, inputs{ inputs }, outputs{ outputs }, node_num{ max_node },
+		output_data(outputs) {}
 
 		std::vector<Connection> genome;
 		std::vector<Node> nodes;

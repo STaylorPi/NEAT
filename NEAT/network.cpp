@@ -228,17 +228,18 @@ namespace NEAT {
 
 	Network Network::cross(const Network& rhs, double disable_thresh)
 	{
-		//__debugbreak();
 		const std::vector<Connection>& genome_rhs = rhs.get_genome();
 		uint32_t max_innov = std::max(std::max_element(genome_rhs.begin(), genome_rhs.end())->innov_num,
 			std::max_element(genome.begin(), genome.end())->innov_num);
+
+		//if (genome_rhs.size() > 4) __debugbreak();
 
 		const bool rhs_fitter = rhs.get_shared_fitness() > shared_fitness;
 
 		std::vector<Connection> new_genome;
 		for (uint32_t i = 0; i <= max_innov; ++i) {
 			// if the gene is disabled in either parent, this is whether we should enable it again
-			const bool enabled = System::rand_dist(System::rand_gen) < (1 - disable_thresh);
+			bool enabled = System::rand_dist(System::rand_gen) < (1 - disable_thresh);
 
 			std::vector<Connection>::const_iterator conn_this = std::find_if(genome.begin(), genome.end(), [&](const Connection& c) { return c.innov_num == i; });
 			std::vector<Connection>::const_iterator conn_rhs = std::find_if(genome_rhs.begin(), genome_rhs.end(), [&](const Connection& c) { return c.innov_num == i; });
@@ -254,15 +255,20 @@ namespace NEAT {
 			// disjoint / excess genes are only inherited from the fitter parent
 			else if (conn_this != genome.end() && !rhs_fitter) {
 				new_genome.push_back(*conn_this);
-				new_genome[new_genome.size() - 1].enabled = enabled;
+				if (!new_genome[new_genome.size() - 1].enabled)
+					new_genome[new_genome.size() - 1].enabled = enabled;
 			}
 			else if (conn_rhs != genome_rhs.end() && rhs_fitter) {
 				new_genome.push_back(*conn_rhs);
-				new_genome[new_genome.size() - 1].enabled = enabled;
+				if (!new_genome[new_genome.size() - 1].enabled)
+					new_genome[new_genome.size() - 1].enabled = enabled;
 			}
 		}
 
-		return derive_from_genome(new_genome, inputs, outputs);
+		Network new_net = derive_from_genome(new_genome, inputs, outputs);
+		new_net.species = species;
+
+		return new_net;
 	}
 
 	Network Network::derive_from_genome(const std::vector<Connection>& genome, uint32_t inputs, uint32_t outputs)

@@ -13,12 +13,12 @@ int main()
 		NEAT::initialise_system<XOR>(sys, test);
 		std::ofstream outfile{ "out.dat" };
 
-		for (size_t i = 0; i < 300; i++)
+		for (size_t i = 0; i < 1000; i++)
 		{
 			sys.simulate_population(4);
+			sys.log(outfile);
 			sys.produce_next_generation();
 			sys.reset_simulators();
-			sys.log(outfile);
 		}
 
 		return 0;

@@ -1,7 +1,7 @@
 #include "system.h"
 
 namespace NEAT {
-	std::default_random_engine System::rand_gen;
+	std::default_random_engine System::rand_gen((std::random_device())());
 	std::uniform_real_distribution<double> System::rand_dist(0, 1);
 	double modified_sigmoid(double input) { return 1 / (1 + exp(-4.9 * input)); }
 	double act_func(double input) { return modified_sigmoid(input); }
@@ -9,10 +9,10 @@ namespace NEAT {
 	uint32_t random_int(uint32_t ulim) { return uint32_t(System::rand_dist(System::rand_gen) * ulim); }
 
 	System::System(uint32_t size, uint32_t inputs, uint32_t outputs, double err)
-		:inputs{ inputs }, outputs{ outputs }, size{ size }, spec_thresh{ 3.0 }, 
+		:inputs{ inputs }, outputs{ outputs }, size{ size }, spec_thresh{ 3.0 },
 		spec_c1{ 1.0 }, spec_c2{ 1.0 }, spec_c3{ .4 }, keep{ .2 },
 		node_mut{ 0.03 }, conn_mut{ 0.05 }, weight_mut{ 0.8 }, mut_uniform{ 0.98 }, weight_err{ 0.825 },
-		generation{ 0 }
+		generation{}, crossover_rate{ 0.8 }, disable_thresh{ 0.75 }, target_species{ 5 }
 	{
 		for (uint32_t i = 0; i < size; ++i) {
 			population.emplace_back(Network{ *this, inputs, outputs, err });
@@ -181,20 +181,36 @@ namespace NEAT {
 		cull_population();
 
 		// now in a state to produce the next generation
-		// 28.05.2022 NONMATING IMPLEMENTATION
 		std::vector<Network> new_population;
+		std::vector<Network> copy_unchanged; // the best nets from the species with 5 or more
 
 		uint32_t spec_index = 0;
 		for (uint32_t spec = 0; spec < species_offspring.size(); ++spec) {
 			uint32_t spec_len = species_count[spec] - uint32_t(species_count[spec] * (1 - keep)); // before amount - amount culled
+			if (species_count[spec] >= 5) {
+				copy_unchanged.push_back(population[spec_index + spec_len - 1]);
+				species_offspring[spec]--;
+			}
+
 			for (uint32_t i = 0; i < species_offspring[spec]; ++i) {
-				new_population.push_back(population[spec_index + random_int(spec_len - 1)]);
+				if (System::rand_dist(System::rand_gen) > crossover_rate) // mutation without crossover: copy random one
+					new_population.push_back(population[spec_index + random_int(spec_len - 1)]);
+
+				else {
+					uint32_t lnet = spec_index + random_int(spec_len - 1);
+					uint32_t rnet = spec_index + random_int(spec_len - 1);
+					new_population.push_back(population[lnet].cross(population[rnet], disable_thresh));
+				}
 			}
 			spec_index += spec_len;
 		}
 		
 		for (Network& net : new_population) {
 			net.mutate(*this, node_mut, conn_mut, weight_mut, mut_uniform, weight_err);
+		}
+
+		for (const Network& net : copy_unchanged) {
+			new_population.push_back(net);
 		}
 
 		population = new_population;

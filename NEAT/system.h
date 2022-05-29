@@ -65,12 +65,17 @@ namespace NEAT {
 
 		// system initial conditions
 		double spec_thresh; // delta_t
+		uint32_t target_species;
 
 		double spec_c1;
 		double spec_c2;
 		double spec_c3;
 
+		// crossover: probability that a gene is disabled if it is disabled in either parent
+		double disable_thresh;
+
 		double keep; // the percentage of the genomes to reproduce from
+		double crossover_rate; // fraction of offspring that result from crossover
 
 		// mutation probabilities
 		double node_mut;
