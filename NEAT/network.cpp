@@ -33,7 +33,7 @@ namespace NEAT {
 		for (uint32_t inn = 0; inn < inputs; ++inn) {
 			for (uint32_t outn = 0; outn < outputs; ++outn) {
 				uint32_t innov = genome.size();
-				genome.emplace_back(Connection{ inn, inputs + outn, true, (System::rand_dist(System::rand_gen) * random_thresh * 2) - random_thresh, 0, false});
+				genome.emplace_back(Connection{ inn, inputs + outn, true, (System::rand_dist(System::rand_gen) * random_thresh * 2) - random_thresh, 0, false });
 				genome[genome.size() - 1].innov_num = sys.get_innov_number(genome[genome.size() - 1]);
 			}
 		}
@@ -54,8 +54,8 @@ namespace NEAT {
 
 	bool Network::speciate(double c1, double c2, double c3, const std::vector<Connection>& rhs, double thresh) const
 	{
-		uint32_t max_innov_this = std::max_element(genome.begin(), genome.end()) -> innov_num;
-		uint32_t max_innov_rhs = std::max_element(rhs.begin(), rhs.end()) -> innov_num;
+		uint32_t max_innov_this = std::max_element(genome.begin(), genome.end())->innov_num;
+		uint32_t max_innov_rhs = std::max_element(rhs.begin(), rhs.end())->innov_num;
 
 		double weight_diff_sum = 0; // the sum of the weights
 		uint32_t match = 0;
@@ -64,8 +64,8 @@ namespace NEAT {
 
 		for (uint32_t innov = 0; innov <= std::max(max_innov_this, max_innov_rhs); ++innov)
 		{
-			auto rhs_conn_iter = std::find_if(rhs.begin(), rhs.end(), [&](const Connection& carg) {return (carg.innov_num == innov); });
-			auto this_conn_iter = std::find_if(genome.begin(), genome.end(), [&](const Connection& carg) {return (carg.innov_num == innov); });
+			auto rhs_conn_iter = std::find_if(rhs.begin(), rhs.end(), [innov](const Connection& carg) {return (carg.innov_num == innov); });
+			auto this_conn_iter = std::find_if(genome.begin(), genome.end(), [innov](const Connection& carg) {return (carg.innov_num == innov); });
 			if (rhs_conn_iter != rhs.end() && this_conn_iter != genome.end()) // the gene is in both genomes
 			{
 				match++;
@@ -84,7 +84,8 @@ namespace NEAT {
 		}
 
 		uint32_t max_size = std::max(genome.size(), rhs.size());
-		if (max_size < 20) max_size = 1;
+		//uint32_t max_size = 1;
+		//if (max_size < 20) max_size = std::min(genome.size(), rhs.size());
 		double delta = c1 * (disjoint / double(max_size)) + c2 * (excess / double(max_size)) + c3 * (weight_diff_sum / match);
 
 		return (delta <= thresh);
@@ -98,7 +99,9 @@ namespace NEAT {
 	const std::vector<double>& Network::calculate(const std::vector<double>& input_data)
 	{
 		// sanity check
-		if (input_data.size() != inputs-1) throw std::runtime_error("Incorrect input array size to NEAT::Network::calculate");
+		if (input_data.size() != inputs - 1) {
+			throw std::runtime_error("Incorrect input array size to NEAT::Network::calculate");
+		}
 
 		uint32_t working_layer = 0;
 
@@ -137,7 +140,7 @@ namespace NEAT {
 				}
 			}
 		}
-		
+
 		// collect the outputs
 		for (const Node& n : nodes) {
 			if (n.get_node() >= inputs && n.get_node() < inputs + outputs) { output_data[n.get_node() - inputs] = n.get_value(); }
@@ -293,7 +296,7 @@ namespace NEAT {
 
 		std::sort(new_nodes.begin(), new_nodes.end(), [](const Node& a, const Node& b) {return a.get_node() < b.get_node(); });
 
-		Network new_net{ *std::max_element(nodes_numbers.begin(), nodes_numbers.end()) + 1, inputs, outputs};
+		Network new_net{ *std::max_element(nodes_numbers.begin(), nodes_numbers.end()) + 1, inputs, outputs };
 		new_net.genome = genome;
 		new_net.nodes = new_nodes;
 
@@ -307,6 +310,32 @@ namespace NEAT {
 		if (System::rand_dist(System::rand_gen) < weight_mut) mutate_weights(mut_uniform, err);
 		if (System::rand_dist(System::rand_gen) < conn_mut) mutate_add_connection(s, err);
 		if (System::rand_dist(System::rand_gen) < node_mut) mutate_add_node(s);
+	}
+
+	std::ostream& Network::byte_genome_dump(std::ostream& os)
+	{
+		std::cout << "Dumping network at " << this << " with fitness " << fitness << "...\n";
+		for (uint64_t i = 0; i < uint64_t(sizeof(Connection)) * genome.size(); ++i) {
+			os << reinterpret_cast<char*>(&genome[0])[i];
+		}
+		std::cout << "Done.\n";
+		return os;
+	}
+
+	std::istream& Network::byte_genome_read(std::istream& is)
+	{
+		std::vector<Connection> new_genome;
+		while (!is.eof()) {
+			__debugbreak();
+			new_genome.push_back(Connection{ 0, 0 });
+			for (uint32_t i = 0; i < sizeof(Connection); ++i) {
+				is >> reinterpret_cast<char*>(&new_genome[new_genome.size() - 1])[i];
+			}
+		}
+
+		*this = derive_from_genome(new_genome, inputs, outputs);
+
+		return is;
 	}
 
 	void Network::configure_layers()
@@ -344,7 +373,7 @@ namespace NEAT {
 		// set up the output layer nodes to all have the same layer
 		for (Node& n : nodes)
 		{
-			if (n.get_node() >= inputs && n.get_node() < inputs + outputs) { n.set_layer(layer-1); }
+			if (n.get_node() >= inputs && n.get_node() < inputs + outputs) { n.set_layer(layer - 1); }
 		}
 
 		max_layer = layer - 1;

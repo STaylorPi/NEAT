@@ -4,10 +4,12 @@
 #include <random>
 #include <algorithm>
 #include <numeric>
+#include <thread>
 
 #include "network.h"
 #include "connection.h"
 #include "simulator.h"
+#include "species.h"
 
 namespace NEAT {
 	double modified_sigmoid(double input);
@@ -25,11 +27,14 @@ namespace NEAT {
 	}
 
 	class Network;
+	class Simulator;
 
 	class System {
 	public:
 		static std::default_random_engine rand_gen;
 		static std::uniform_real_distribution<double> rand_dist;
+
+		struct Species;
 
 		System(uint32_t size, uint32_t inputs, uint32_t outputs, double err);
 		void init_simulators(const std::vector<std::shared_ptr<Simulator>>& sims);
@@ -42,11 +47,17 @@ namespace NEAT {
 		const std::vector<uint32_t>& get_species_dist() const { return species_count; }
 
 		void simulate_population(uint32_t timesteps);
+		void simulate_multithread(uint32_t timesteps);
 		void reset_simulators();
 
 		void produce_next_generation();
 
 		std::ostream& log(std::ostream&);
+		double get_max_fitness() const { return max_fitness; }
+		double get_mean_fitness() const { return mean_fitness; }
+		uint32_t get_generation() const { return generation; }
+
+		std::ostream& dump_fittest(std::ostream&);
 
 	private:
 
@@ -55,6 +66,8 @@ namespace NEAT {
 
 		std::vector<Network> species_reps; // the species representatives for each species
 		std::vector<uint32_t> species_count; // the overall number of organisms in each species
+		std::vector<std::vector<double>> fitness_trends; // uesd to decide whether to eliminate a species
+		std::vector<Species> species; // to replace the preceding 3 lines
 
 		std::vector<Connection> genes; // the current innovations of the population as a whole
 
@@ -66,6 +79,7 @@ namespace NEAT {
 		// system initial conditions
 		double spec_thresh; // delta_t
 		uint32_t target_species;
+		uint32_t stagnation_gen; // how many generations of stagnation forces a species to be removed
 
 		double spec_c1;
 		double spec_c2;
@@ -85,12 +99,19 @@ namespace NEAT {
 
 		double weight_err; // the error to mutate (+-weight_err)
 
-		void speciate();
-		void update_reps();
-		void fitness_sharing(); // carrry out the fitness sharing algorithm (pg. 110)
+		double mean_fitness, mean_hidden_nodes, max_fitness;
 
+		void speciate();
+		void update_reps(); // assumes speciated population
+		void fitness_sharing(); // carry out the fitness sharing algorithm (pg. 110)
+		void update_fitness_log(); // assumes freshly speciated population
+
+		// assumes fitness shared and speciated population
 		std::vector<uint32_t> assign_offspring(); // give the number of offspring to each species
+
+		// assumes speciated population
 		void cull_population(); // removes the unfit genomes from the population
+		static void simulate_subset(System* s, uint32_t first, uint32_t last, uint32_t steps); // for multithreading
 	};
 
 	template<typename Sim>

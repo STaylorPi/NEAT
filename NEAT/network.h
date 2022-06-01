@@ -11,6 +11,7 @@
 
 namespace NEAT {
 	class System;
+	class Simulator;
 
 	double act_func(double);
 
@@ -41,6 +42,7 @@ namespace NEAT {
 		// does what it says on the tin
 		const std::vector<Connection>& get_genome() const { return genome; }
 		uint32_t get_species() const { return species; }
+		const std::vector<double>& get_output() const { return output_data; }
 
 		uint32_t get_hidden_nodes() const { return nodes.size() - inputs - outputs; }
 
@@ -60,6 +62,9 @@ namespace NEAT {
 
 		// parameters are probabilities of their respective types of mutations occuring
 		void mutate(System& s, double node_mut, double conn_mut, double weight_mut, double mut_uniform, double err);
+
+		std::ostream& byte_genome_dump(std::ostream& os);
+		std::istream& byte_genome_read(std::istream& is);
 
 		class Node {
 		public:
