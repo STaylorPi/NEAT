@@ -73,32 +73,9 @@ namespace NEAT {
 
 			void calculate(double input) { value = act_func(input); }
 
-			void update_back_inputs(const std::vector<Connection>& genome)
-			{
-				back_inputs.clear();
+			void update_back_inputs(const std::vector<Connection>& genome);
 
-				for (uint32_t in_node : input_nodes)
-				{
-					auto in_conn = std::find(genome.begin(), genome.end(), Connection{ in_node, node });
-					if (!in_conn->recursive && in_conn->enabled) {
-						back_inputs.push_back(in_node);
-					}
-				}
-			}
-
-			void calculate_value(const std::vector<Connection>& genome)
-			{
-				double temp_val = 0;
-				for (uint32_t n : input_nodes)
-				{
-					auto conn = std::find(genome.begin(), genome.end(), Connection{ n, node });
-					if (conn->enabled) {
-						temp_val += conn->value;
-					}
-				}
-
-				calculate(temp_val);
-			}
+			void calculate_value(const std::vector<Connection>& genome);
 
 			double get_value() const { return value; }
 			uint32_t get_layer() const { return layer; }

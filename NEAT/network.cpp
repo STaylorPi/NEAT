@@ -93,7 +93,7 @@ namespace NEAT {
 
 	void Network::adjust_fitness(const System& sys)
 	{
-		shared_fitness = fitness / sys.get_species_dist()[species];
+		shared_fitness = fitness / sys.get_species()[species].count;
 	}
 
 	const std::vector<double>& Network::calculate(const std::vector<double>& input_data)
@@ -377,5 +377,30 @@ namespace NEAT {
 		}
 
 		max_layer = layer - 1;
+	}
+	void Network::Node::update_back_inputs(const std::vector<Connection>& genome)
+	{
+		back_inputs.clear();
+
+		for (uint32_t in_node : input_nodes)
+		{
+			auto in_conn = std::find(genome.begin(), genome.end(), Connection{ in_node, node });
+			if (!in_conn->recursive && in_conn->enabled) {
+				back_inputs.push_back(in_node);
+			}
+		}
+	}
+	void Network::Node::calculate_value(const std::vector<Connection>& genome)
+	{
+		double temp_val = 0;
+		for (uint32_t n : input_nodes)
+		{
+			auto conn = std::find(genome.begin(), genome.end(), Connection{ n, node });
+			if (conn->enabled) {
+				temp_val += conn->value;
+			}
+		}
+
+		calculate(temp_val);
 	}
 }

@@ -9,7 +9,6 @@
 #include "network.h"
 #include "connection.h"
 #include "simulator.h"
-#include "species.h"
 
 namespace NEAT {
 	double modified_sigmoid(double input);
@@ -29,12 +28,25 @@ namespace NEAT {
 	class Network;
 	class Simulator;
 
+	struct Species {
+		Species(const Network& net);
+
+		bool progress_made(uint32_t since);
+		void set_rep(const Network& net);
+		const Network& get_rep() const { return *rep; }
+
+		uint32_t count; // how many organisms in species
+		uint32_t offspring; // how many organisms in species
+		std::vector<double> fitness_log;
+
+	private:
+		std::unique_ptr<Network> rep; // genome that represents species
+	};
+
 	class System {
 	public:
 		static std::default_random_engine rand_gen;
 		static std::uniform_real_distribution<double> rand_dist;
-
-		struct Species;
 
 		System(uint32_t size, uint32_t inputs, uint32_t outputs, double err);
 		void init_simulators(const std::vector<std::shared_ptr<Simulator>>& sims);
@@ -44,7 +56,7 @@ namespace NEAT {
 		std::vector<Network>& get_population() { return population; }
 		const std::vector<Network>& get_population() const { return population; }
 		uint32_t get_size() const { return size; }
-		const std::vector<uint32_t>& get_species_dist() const { return species_count; }
+		const std::vector<Species>& get_species() const { return species; }
 
 		void simulate_population(uint32_t timesteps);
 		void simulate_multithread(uint32_t timesteps);
@@ -64,9 +76,9 @@ namespace NEAT {
 		std::vector<std::shared_ptr<Simulator>> simulators; // the data passed to the population for simulation
 		std::vector<Network> population;
 
-		std::vector<Network> species_reps; // the species representatives for each species
-		std::vector<uint32_t> species_count; // the overall number of organisms in each species
-		std::vector<std::vector<double>> fitness_trends; // uesd to decide whether to eliminate a species
+		//std::vector<Network> species_reps; // the species representatives for each species
+		//std::vector<uint32_t> species_count; // the overall number of organisms in each species
+		//std::vector<std::vector<double>> fitness_trends; // uesd to decide whether to eliminate a species
 		std::vector<Species> species; // to replace the preceding 3 lines
 
 		std::vector<Connection> genes; // the current innovations of the population as a whole
@@ -90,6 +102,7 @@ namespace NEAT {
 
 		double keep; // the percentage of the genomes to reproduce from
 		double crossover_rate; // fraction of offspring that result from crossover
+		double spec_penalty;
 
 		// mutation probabilities
 		double node_mut;
@@ -107,7 +120,7 @@ namespace NEAT {
 		void update_fitness_log(); // assumes freshly speciated population
 
 		// assumes fitness shared and speciated population
-		std::vector<uint32_t> assign_offspring(); // give the number of offspring to each species
+		void assign_offspring(); // give the number of offspring to each species
 
 		// assumes speciated population
 		void cull_population(); // removes the unfit genomes from the population
