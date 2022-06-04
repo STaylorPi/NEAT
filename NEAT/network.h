@@ -43,6 +43,7 @@ namespace NEAT {
 		const std::vector<Connection>& get_genome() const { return genome; }
 		uint32_t get_species() const { return species; }
 		const std::vector<double>& get_output() const { return output_data; }
+		uint32_t get_max_layer() const { return max_layer; }
 
 		uint32_t get_hidden_nodes() const { return nodes.size() - inputs - outputs; }
 
@@ -62,6 +63,10 @@ namespace NEAT {
 
 		// parameters are probabilities of their respective types of mutations occuring
 		void mutate(System& s, double node_mut, double conn_mut, double weight_mut, double mut_uniform, double err);
+
+		// this procedure recalcaultes the layers of the nodes after a topology mutation
+		// assumes layers are in vaild state (updated)
+		void configure_layers();
 
 		std::ostream& byte_genome_dump(std::ostream& os);
 		std::istream& byte_genome_read(std::istream& is);
@@ -97,6 +102,8 @@ namespace NEAT {
 			std::vector<uint32_t> back_inputs; // the nodes that input non-recursive, enabled connections into the node
 		};
 
+		const std::vector<Node>& get_nodes() const { return nodes; }
+
 	private:
 		Network(uint32_t max_node, uint32_t inputs, uint32_t outputs)
 			:fitness{}, shared_fitness{}, species{}, max_layer{ 1 }, inputs{ inputs }, outputs{ outputs }, node_num{ max_node },
@@ -113,10 +120,6 @@ namespace NEAT {
 		uint32_t max_layer; // the layer number of the output nodes
 
 		std::vector<double> output_data;
-
-		// this procedure recalcaultes the layers of the nodes after a topology mutation
-		// assumes layers are in vaild state (updated)
-		void configure_layers();
 
 		// mutate_uniform: the probability that a given weight will be mutated by adding to its original value
 		// if not, it is assigned a new random value
